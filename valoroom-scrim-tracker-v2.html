@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valoroom — Scrim Tracker v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a10;--bg2:#0f0f18;--bg3:#141420;--bg4:#1a1a28;--bg5:#202030;
+  --text:#e2e2f0;--text2:#8888a8;--text3:#5555708;
+  --border:#1e1e32;--border2:#2a2a42;
+  --blue:#4a90e2;--blue2:#2a5fa0;--blue-glow:rgba(74,144,226,0.15);
+  --green:#5aaa22;--green-light:rgba(90,170,34,0.1);
+  --red:#d03030;--red-light:rgba(208,48,48,0.1);
+  --amber:#d08020;--amber-light:rgba(208,128,32,0.1);
+  --purple:#8060cc;--purple-light:rgba(128,96,204,0.1);
+  --radius:8px;--radius-sm:5px;
+}
+
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;font-size:13px;line-height:1.5;overflow-x:hidden}
+
+/* Grid bg */
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(74,144,226,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(74,144,226,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+.app{max-width:1140px;margin:0 auto;padding:20px;position:relative;z-index:1}
+
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--border2)}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--blue),var(--blue2));border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 20px rgba(74,144,226,0.3)}
+.logo-text{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px}
+.logo-sub{font-size:11px;color:var(--text2);margin-top:1px;font-family:'JetBrains Mono',monospace}
+.header-stats{display:flex;gap:10px}
+.hstat{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 16px;text-align:center;min-width:80px}
+.hstat-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;font-family:'Rajdhani',sans-serif}
+.hstat-val{font-size:22px;font-weight:700;margin-top:2px;font-family:'Rajdhani',sans-serif}
+
+/* Nav */
+.nav{display:flex;gap:3px;margin-bottom:20px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:4px}
+.nav-btn{flex:1;padding:9px 10px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-radius:var(--radius-sm);transition:all 0.15s;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;white-space:nowrap}
+.nav-btn.active{background:var(--blue);color:#fff;box-shadow:0 0 12px rgba(74,144,226,0.3)}
+.nav-btn:hover:not(.active){background:var(--bg4);color:var(--text)}
+
+/* Sections */
+.section{display:none}.section.active{display:block}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.card-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px;font-family:'Rajdhani',sans-serif;letter-spacing:0.8px;text-transform:uppercase}
+
+/* Metrics */
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;text-align:center}
+.metric-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;font-family:'Rajdhani',sans-serif}
+.metric-val{font-size:30px;font-weight:700;margin-top:4px;font-family:'Rajdhani',sans-serif}
+
+/* Table */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-weight:600;font-size:10px;color:var(--text2);padding:9px 12px;border-bottom:1px solid var(--border2);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;font-family:'Rajdhani',sans-serif}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+td.name-cell{font-family:'Inter',sans-serif;font-size:12px}
+td.num{font-weight:600}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:3px 9px;border-radius:3px;font-weight:700;letter-spacing:0.5px;font-family:'Rajdhani',sans-serif}
+.badge-win{background:var(--green-light);color:#7dcc44;border:1px solid rgba(90,170,34,0.3)}
+.badge-loss{background:var(--red-light);color:#f07070;border:1px solid rgba(208,48,48,0.3)}
+.badge-draw{background:var(--amber-light);color:#e8a040;border:1px solid rgba(208,128,32,0.3)}
+.tag-map{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(74,144,226,0.3);font-size:10px;padding:2px 8px;border-radius:3px;font-weight:600;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px}
+
+/* Bars */
+.bar-wrap{margin:8px 0}
+.bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+.bar-bg{background:var(--bg4);border-radius:2px;height:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width 0.8s cubic-bezier(.4,0,.2,1)}
+
+/* Form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;font-family:'Rajdhani',sans-serif}
+.form-group input,.form-group select,.form-group textarea{
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:9px 12px;font-size:12px;
+  background:var(--bg3);color:var(--text);
+  transition:border-color 0.15s;outline:none;
+  font-family:'Inter',sans-serif;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(74,144,226,0.1)}
+select option{background:var(--bg3)}
+
+/* Player inputs */
+.player-inputs-header{display:grid;grid-template-columns:130px 100px repeat(6,1fr);gap:6px;padding:8px 0;border-bottom:1px solid var(--border2);margin-bottom:8px}
+.player-inputs-header span{font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;font-family:'Rajdhani',sans-serif}
+.player-row-input{display:grid;grid-template-columns:130px 100px repeat(6,1fr);gap:6px;margin-bottom:6px;align-items:center}
+.player-name-cell{font-size:12px;font-weight:600;color:var(--text);padding:6px 0;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px}
+.player-row-input input,.player-row-input select{
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:6px 8px;font-size:11px;
+  background:var(--bg3);color:var(--text);width:100%;outline:none;
+  font-family:'JetBrains Mono',monospace;
+}
+.player-row-input input:focus{border-color:var(--blue)}
+.player-row-input select{font-family:'Inter',sans-serif;font-size:11px}
+
+/* Buttons */
+.btn-primary{
+  background:var(--blue);color:#fff;border:none;
+  border-radius:var(--radius-sm);padding:11px 22px;
+  font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:10px;
+  transition:all 0.15s;font-family:'Rajdhani',sans-serif;letter-spacing:0.8px;text-transform:uppercase;
+}
+.btn-primary:hover{background:var(--blue2);box-shadow:0 0 14px rgba(74,144,226,0.3)}
+.btn-danger{background:rgba(208,48,48,0.15);color:#f07070;border:1px solid rgba(208,48,48,0.3);border-radius:var(--radius-sm);padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:'Rajdhani',sans-serif}
+.btn-danger:hover{background:rgba(208,48,48,0.25)}
+.btn-sm{background:var(--bg4);color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:'Rajdhani',sans-serif}
+.btn-sm:hover{border-color:var(--blue);color:var(--blue)}
+
+/* Alert */
+.alert{border-radius:var(--radius-sm);padding:11px 14px;font-size:12px;font-weight:600;margin-bottom:12px;display:none;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px}
+.alert-success{background:var(--green-light);color:#7dcc44;border:1px solid rgba(90,170,34,0.3)}
+.alert-error{background:var(--red-light);color:#f07070;border:1px solid rgba(208,48,48,0.3)}
+.alert-info{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(74,144,226,0.3)}
+
+/* Charts grid */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.maps-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Player avatar */
+.player-avatar{width:28px;height:28px;border-radius:4px;background:var(--blue-glow);border:1px solid rgba(74,144,226,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);margin-right:8px;vertical-align:middle;font-family:'Rajdhani',sans-serif}
+
+/* KD colors */
+.kd-pos{color:#7dcc44}
+.kd-neg{color:#f07070}
+.kd-neu{color:#e8a040}
+
+/* Empty */
+.empty{text-align:center;padding:40px;color:var(--text2)}
+.empty-icon{font-size:32px;margin-bottom:12px}
+
+/* Filter row */
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-row select,.filter-row input{
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:7px 10px;font-size:12px;
+  background:var(--bg2);color:var(--text);outline:none;
+}
+.filter-row select:focus,.filter-row input:focus{border-color:var(--blue)}
+
+/* ─── AI IMPORT ─── */
+.ai-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;background:var(--bg3)}
+.ai-zone:hover,.ai-zone.drag-over{border-color:var(--blue);background:var(--blue-glow)}
+.ai-zone-title{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.ai-zone p{font-size:11px;color:var(--text2)}
+#preview-img{max-width:100%;border-radius:var(--radius-sm);margin-top:12px;display:none}
+
+.ai-result{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;margin-top:12px;display:none}
+.ai-result-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;margin-bottom:12px;color:var(--blue)}
+.ai-loading{display:none;text-align:center;padding:20px;color:var(--text2)}
+.spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* YouTube zone */
+.yt-zone{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;margin-top:12px}
+.yt-zone-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;color:#e00;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.yt-input-row{display:flex;gap:8px}
+.yt-input-row input{flex:1;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 12px;font-size:12px;background:var(--bg2);color:var(--text);outline:none;font-family:'JetBrains Mono',monospace}
+.yt-input-row input:focus{border-color:#e00}
+.btn-yt{background:#c00;color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;white-space:nowrap}
+.btn-yt:hover{background:#e00}
+
+/* Timecodes */
+.timecodes-list{margin-top:12px}
+.timecode-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg4);border-radius:var(--radius-sm);margin-bottom:6px;border:1px solid var(--border)}
+.tc-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--blue);font-weight:600;min-width:60px}
+.tc-desc{font-size:12px;color:var(--text);flex:1}
+.tc-badge{font-size:10px;font-family:'Rajdhani',sans-serif;padding:2px 8px;border-radius:2px}
+.tc-kill{background:rgba(208,48,48,0.2);color:#f07070;border:1px solid rgba(208,48,48,0.3)}
+.tc-clutch{background:rgba(74,144,226,0.2);color:var(--blue);border:1px solid rgba(74,144,226,0.3)}
+.tc-strat{background:rgba(128,96,204,0.2);color:#a080f0;border:1px solid rgba(128,96,204,0.3)}
+.tc-mistake{background:rgba(208,128,32,0.2);color:#e8a040;border:1px solid rgba(208,128,32,0.3)}
+.add-tc-row{display:flex;gap:6px;margin-top:8px}
+.add-tc-row input{flex:1;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 10px;font-size:11px;background:var(--bg3);color:var(--text);outline:none}
+.add-tc-row select{border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 8px;font-size:11px;background:var(--bg3);color:var(--text);outline:none}
+.add-tc-row input:focus,.add-tc-row select:focus{border-color:var(--blue)}
+
+/* Map 2D Canvas */
+.map-canvas-wrap{position:relative;width:100%;aspect-ratio:1.78;background:var(--bg4);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border2)}
+canvas.map-canvas{width:100%;height:100%;cursor:crosshair;display:block}
+.map-tools{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tool-btn{padding:6px 12px;font-size:11px;font-weight:600;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:'Rajdhani',sans-serif;transition:all 0.15s}
+.tool-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tool-btn:hover:not(.active){border-color:var(--blue);color:var(--blue)}
+.map-legend{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+
+/* History action row */
+.action-row{display:flex;align-items:center;gap:8px}
+
+/* Tabs in section */
+.sub-tabs{display:flex;gap:4px;margin-bottom:14px}
+.sub-tab{padding:7px 14px;font-size:11px;font-weight:600;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);border-radius:var(--radius-sm);cursor:pointer;font-family:'Rajdhani',sans-serif;transition:all 0.15s}
+.sub-tab.active{background:var(--purple);color:#fff;border-color:var(--purple)}
+
+/* Confirmation modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;align-items:center;justify-content:center}
+.modal-overlay.visible{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:24px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.modal h3{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;color:var(--text)}
+.modal p{font-size:12px;color:var(--text2);margin-bottom:18px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.modal-cancel{background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Rajdhani',sans-serif}
+.modal-confirm{background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif}
+
+@media(max-width:700px){
+  .metric-grid{grid-template-columns:1fr 1fr}
+  .charts-grid,.maps-grid,.form-grid{grid-template-columns:1fr}
+  .player-inputs-header,.player-row-input{grid-template-columns:80px 70px repeat(6,1fr);font-size:10px}
+  .nav-btn{font-size:10px;padding:7px 5px}
+  .header-stats{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🎮</div>
+    <div>
+      <div class="logo-text">Valoroom</div>
+      <div class="logo-sub">scrim_tracker v2.0</div>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="hstat"><div class="hstat-label">Praccs</div><div class="hstat-val" id="h-total">0</div></div>
+    <div class="hstat"><div class="hstat-label">Win Rate</div><div class="hstat-val" id="h-wr" style="color:#7dcc44">0%</div></div>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" onclick="switchTab('historique',this)">Historique</button>
+  <button class="nav-btn" onclick="switchTab('joueurs',this)">Joueurs</button>
+  <button class="nav-btn" onclick="switchTab('maps',this)">Maps</button>
+  <button class="nav-btn" onclick="switchTab('analyse',this)">🗺️ Analyse</button>
+  <button class="nav-btn" onclick="switchTab('importer',this)">📸 Importer</button>
+  <button class="nav-btn" onclick="switchTab('ajouter',this)">+ Pracc</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="section active">
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-label">Maps jouées</div><div class="metric-val" id="d-maps">0</div></div>
+    <div class="metric"><div class="metric-label">Victoires</div><div class="metric-val" id="d-wins" style="color:#7dcc44">0</div></div>
+    <div class="metric"><div class="metric-label">Défaites</div><div class="metric-val" id="d-losses" style="color:#f07070">0</div></div>
+    <div class="metric"><div class="metric-label">Nuls</div><div class="metric-val" id="d-draws" style="color:#e8a040">0</div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="card"><div class="card-title">📊 Win rate par map</div><div id="map-wr-bars"></div></div>
+    <div class="card"><div class="card-title">⚡ ACS moyen par joueur</div><div id="acs-bars"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🕐 Dernières praccs</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Adversaire</th><th>Map</th><th>Score</th><th>Résultat</th><th>YT</th><th>Notes</th></tr></thead>
+      <tbody id="recent-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- HISTORIQUE -->
+<div id="historique" class="section">
+  <div class="filter-row">
+    <select id="f-map-filter" onchange="renderHistory()">
+      <option value="">Toutes les maps</option>
+      <option>Ascent</option><option>Bind</option><option>Haven</option>
+      <option>Icebox</option><option>Lotus</option><option>Pearl</option><option>Split</option>
+    </select>
+    <select id="f-res-filter" onchange="renderHistory()">
+      <option value="">Tous résultats</option>
+      <option value="W">Victoire</option><option value="L">Défaite</option><option value="D">Nul</option>
+    </select>
+    <input type="date" id="f-date-filter" onchange="renderHistory()">
+    <select id="f-opp-filter" onchange="renderHistory()"><option value="">Tous adversaires</option></select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Adversaire</th><th>Map</th><th>Score</th><th>Résultat</th><th>ACS</th><th>ADR</th><th>KAST</th><th>YT</th><th>Actions</th></tr></thead>
+      <tbody id="hist-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- JOUEURS -->
+<div id="joueurs" class="section">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Joueur</th><th>Agent fav.</th><th>Praccs</th><th>ACS</th><th>K/D</th><th>ADR</th><th>KAST</th><th>Rating</th><th>TFK/D</th></tr></thead>
+      <tbody id="players-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- MAPS -->
+<div id="maps" class="section">
+  <div class="maps-grid" id="maps-grid"></div>
+</div>
+
+<!-- ANALYSE MAP 2D -->
+<div id="analyse" class="section">
+  <div class="card">
+    <div class="card-title">🗺️ Carte 2D — Analyse de jeu</div>
+    <div class="filter-row" style="margin-bottom:12px">
+      <select id="canvas-map-sel" onchange="initMapCanvas()">
+        <option value="Ascent">Ascent</option><option value="Bind">Bind</option>
+        <option value="Haven">Haven</option><option value="Icebox">Icebox</option>
+        <option value="Lotus">Lotus</option><option value="Pearl">Pearl</option>
+        <option value="Split">Split</option>
+      </select>
+      <select id="canvas-pracc-sel" onchange="loadPraccTimecodes()">
+        <option value="">Pracc libre</option>
+      </select>
+      <button class="btn-sm" onclick="clearCanvas()">Effacer</button>
+      <button class="btn-sm" onclick="exportCanvas()">📷 Export</button>
+    </div>
+    <div class="map-tools">
+      <button class="tool-btn active" onclick="setTool('attack','this')" id="tool-attack">🔴 Attaque</button>
+      <button class="tool-btn" onclick="setTool('defense','this')" id="tool-defense">🔵 Défense</button>
+      <button class="tool-btn" onclick="setTool('rotate','this')" id="tool-rotate">🟡 Rotate</button>
+      <button class="tool-btn" onclick="setTool('spike','this')" id="tool-spike">💣 Spike</button>
+      <button class="tool-btn" onclick="setTool('arrow','this')" id="tool-arrow">➡️ Flèche</button>
+      <button class="tool-btn" onclick="setTool('erase','this')" id="tool-erase">❌ Effacer zone</button>
+    </div>
+    <div class="map-canvas-wrap">
+      <canvas id="mapCanvas" class="map-canvas"></canvas>
+    </div>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#f07070"></div>Attaque</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4a90e2"></div>Défense</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e8a040"></div>Rotate</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#c044f0"></div>Spike</div>
+    </div>
+  </div>
+
+  <!-- Timecodes liés -->
+  <div class="card" id="tc-panel" style="display:none">
+    <div class="card-title">⏱️ Timecodes de la pracc</div>
+    <div class="timecodes-list" id="tc-list"></div>
+    <div class="add-tc-row">
+      <input id="tc-time" placeholder="1:23" style="max-width:80px">
+      <input id="tc-desc" placeholder="Description (ex: clutch B site)">
+      <select id="tc-type">
+        <option value="kill">Kill</option>
+        <option value="clutch">Clutch</option>
+        <option value="strat">Strat</option>
+        <option value="mistake">Erreur</option>
+      </select>
+      <button class="btn-sm" onclick="addTimecode()">+ Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORTER (IA Scoreboard + YouTube) -->
+<div id="importer" class="section">
+  <div class="alert alert-info" id="import-info" style="display:block">
+    💡 Dépose une capture d'écran du scoreboard Valorant ou colle un lien YouTube — l'IA extrait automatiquement les stats et pré-remplit le formulaire.
+  </div>
+
+  <!-- Image upload -->
+  <div class="card">
+    <div class="card-title">📸 Extraction depuis screenshot</div>
+    <div class="ai-zone" id="ai-drop-zone">
+      <div class="ai-zone-title">📸 Dépose ton scoreboard ici</div>
+      <p>ou clique pour sélectionner une image (PNG, JPG, WEBP)</p>
+      <input type="file" id="ai-file-input" accept="image/*" style="display:none">
+      <img id="preview-img" alt="preview">
+    </div>
+    <div class="ai-loading" id="ai-loading">
+      <div class="spinner"></div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600">Analyse du scoreboard en cours...</div>
+    </div>
+    <div class="ai-result" id="ai-result">
+      <div class="ai-result-title">✅ Stats extraites — vérifie et modifie si besoin</div>
+      <div id="ai-result-content"></div>
+      <button class="btn-primary" onclick="applyAIStats()">📥 Appliquer au formulaire</button>
+    </div>
+  </div>
+
+  <!-- YouTube -->
+  <div class="card">
+    <div class="card-title">🎬 Extraction depuis lien YouTube</div>
+    <div class="yt-zone">
+      <div class="yt-zone-title">▶ YouTube VOD</div>
+      <div class="yt-input-row">
+        <input id="yt-url" placeholder="https://www.youtube.com/watch?v=..." type="url">
+        <button class="btn-yt" onclick="analyzeYouTube()">Analyser</button>
+      </div>
+    </div>
+    <div class="ai-loading" id="yt-loading">
+      <div class="spinner"></div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600">Analyse de la VOD en cours...</div>
+    </div>
+    <div class="ai-result" id="yt-result">
+      <div class="ai-result-title">✅ Analyse YouTube terminée</div>
+      <div id="yt-result-content"></div>
+      <button class="btn-primary" onclick="applyYTStats()">📥 Appliquer au formulaire</button>
+    </div>
+  </div>
+</div>
+
+<!-- AJOUTER -->
+<div id="ajouter" class="section">
+  <div class="alert alert-success" id="success-alert">✅ Pracc enregistrée avec succès !</div>
+  <div class="alert alert-error" id="error-alert">⚠️ Remplis au moins la date, l'adversaire et le score.</div>
+
+  <div class="card">
+    <div class="card-title">📋 Informations de la partie</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Date</label><input type="date" id="in-date"></div>
+      <div class="form-group"><label>Adversaire</label><input type="text" id="in-opp" placeholder="Nom de l'équipe"></div>
+      <div class="form-group"><label>Map</label>
+        <select id="in-map">
+          <option>Ascent</option><option>Bind</option><option>Haven</option>
+          <option>Icebox</option><option>Lotus</option><option>Pearl</option><option>Split</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Score (ex: 13-8)</label><input type="text" id="in-score" placeholder="13-8"></div>
+      <div class="form-group"><label>Résultat</label>
+        <select id="in-result"><option value="W">Victoire</option><option value="L">Défaite</option><option value="D">Nul</option></select>
+      </div>
+      <div class="form-group"><label>Lien YouTube (optionnel)</label><input type="url" id="in-yt" placeholder="https://youtu.be/..."></div>
+      <div class="form-group" style="grid-column:span 2"><label>Notes / Observations</label><input type="text" id="in-notes" placeholder="Strats utilisées, points à améliorer..."></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👥 Stats des joueurs</div>
+    <div class="player-inputs-header">
+      <span>Joueur</span><span>Agent</span><span>ACS</span><span>K/D</span><span>ADR</span><span>KAST%</span><span>Rating</span><span>TFK/D</span>
+    </div>
+    <div id="player-form-rows"></div>
+  </div>
+
+  <!-- Timecodes at creation -->
+  <div class="card">
+    <div class="card-title">⏱️ Timecodes (optionnel)</div>
+    <div class="timecodes-list" id="new-tc-list"></div>
+    <div class="add-tc-row">
+      <input id="new-tc-time" placeholder="1:23" style="max-width:80px">
+      <input id="new-tc-desc" placeholder="Description">
+      <select id="new-tc-type">
+        <option value="kill">Kill</option><option value="clutch">Clutch</option>
+        <option value="strat">Strat</option><option value="mistake">Erreur</option>
+      </select>
+      <button class="btn-sm" onclick="addNewTimecode()">+ Ajouter</button>
+    </div>
+  </div>
+
+  <button class="btn-primary" onclick="savePracc()">💾 Enregistrer la pracc</button>
+</div>
+
+</div><!-- .app -->
+
+<!-- Modal confirmation suppression -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <h3>🗑️ Supprimer la pracc ?</h3>
+    <p>Cette action est irréversible. Toutes les stats et timecodes de cette pracc seront supprimés.</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeDeleteModal()">Annuler</button>
+      <button class="modal-confirm" onclick="confirmDelete()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PLAYERS = ['Zeytrost','Flypii','Player3','Player4','Player5'];
+const AGENTS = ['Jett','Neon','Raze','Sova','Fade','Killjoy','Cypher','Sage','Omen','Brimstone','Astra','Viper','Kay/O','Skye','Breach','Gekko','Harbor','Iso','Clove','Deadlock','Vyse'];
+const STORAGE_KEY = 'valoroom_scrims_v2';
+let scrims = [];
+let pendingDeleteIdx = null;
+let newTimecodes = [];
+let aiExtractedData = null;
+let ytExtractedData = null;
+
+// ── Storage ──
+function load() {
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) scrims = JSON.parse(d);
+    else scrims = getSampleData();
+  } catch(e) { scrims = getSampleData(); }
+}
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(scrims)); } catch(e) {}
+}
+
+function getSampleData() {
+  return [
+    {date:'2025-04-10',opp:'Team Alpha',map:'Ascent',score:'13-9',result:'W',notes:'Bonne exécution B site',yt:'',timecodes:[{time:'2:15',desc:'Ace Zeytrost A site',type:'kill'},{time:'8:40',desc:'Clutch 1v3 Flypii',type:'clutch'}],stats:[
+      {p:'Zeytrost',a:'Jett',acs:287,kd:1.4,adr:168,kast:78,rating:1.35,tfkd:1.2},
+      {p:'Flypii',a:'Sova',acs:201,kd:1.1,adr:142,kast:72,rating:1.12,tfkd:0.9},
+      {p:'Player3',a:'Killjoy',acs:178,kd:0.9,adr:128,kast:68,rating:0.98,tfkd:0.7},
+      {p:'Player4',a:'Omen',acs:155,kd:0.8,adr:110,kast:65,rating:0.88,tfkd:0.6},
+      {p:'Player5',a:'Skye',acs:142,kd:0.7,adr:98,kast:70,rating:0.85,tfkd:0.5}]},
+    {date:'2025-04-11',opp:'Nexus GG',map:'Bind',score:'11-13',result:'L',notes:'Retakes ratés',yt:'https://youtu.be/example1',timecodes:[{time:'5:30',desc:'Erreur retake B',type:'mistake'}],stats:[
+      {p:'Zeytrost',a:'Neon',acs:245,kd:1.1,adr:145,kast:70,rating:1.15,tfkd:1.0},
+      {p:'Flypii',a:'Fade',acs:188,kd:0.9,adr:130,kast:65,rating:0.95,tfkd:0.8},
+      {p:'Player3',a:'Cypher',acs:162,kd:0.8,adr:118,kast:60,rating:0.88,tfkd:0.6},
+      {p:'Player4',a:'Viper',acs:140,kd:0.7,adr:105,kast:62,rating:0.82,tfkd:0.5},
+      {p:'Player5',a:'Kay/O',acs:130,kd:0.6,adr:90,kast:58,rating:0.78,tfkd:0.4}]},
+    {date:'2025-04-12',opp:'Storm5',map:'Haven',score:'13-7',result:'W',notes:'Domination CT side',yt:'',timecodes:[],stats:[
+      {p:'Zeytrost',a:'Jett',acs:312,kd:1.6,adr:182,kast:82,rating:1.48,tfkd:1.4},
+      {p:'Flypii',a:'Sova',acs:220,kd:1.2,adr:155,kast:75,rating:1.18,tfkd:1.0},
+      {p:'Player3',a:'Killjoy',acs:185,kd:1.0,adr:135,kast:72,rating:1.02,tfkd:0.8},
+      {p:'Player4',a:'Brimstone',acs:165,kd:0.9,adr:115,kast:68,rating:0.92,tfkd:0.7},
+      {p:'Player5',a:'Skye',acs:150,kd:0.8,adr:102,kast:74,rating:0.90,tfkd:0.6}]},
+    {date:'2025-04-14',opp:'Nexus GG',map:'Icebox',score:'13-13',result:'D',notes:'Bonne réponse',yt:'',timecodes:[],stats:[
+      {p:'Zeytrost',a:'Raze',acs:265,kd:1.2,adr:158,kast:74,rating:1.22,tfkd:1.1},
+      {p:'Flypii',a:'Sova',acs:195,kd:1.0,adr:140,kast:70,rating:1.05,tfkd:0.9},
+      {p:'Player3',a:'Sage',acs:170,kd:0.9,adr:122,kast:66,rating:0.94,tfkd:0.7},
+      {p:'Player4',a:'Omen',acs:148,kd:0.8,adr:108,kast:64,rating:0.86,tfkd:0.6},
+      {p:'Player5',a:'Kay/O',acs:138,kd:0.7,adr:95,kast:62,rating:0.82,tfkd:0.5}]},
+    {date:'2025-04-16',opp:'Team Alpha',map:'Lotus',score:'13-10',result:'W',notes:'',yt:'',timecodes:[],stats:[
+      {p:'Zeytrost',a:'Jett',acs:298,kd:1.5,adr:172,kast:80,rating:1.40,tfkd:1.3},
+      {p:'Flypii',a:'Fade',acs:210,kd:1.1,adr:148,kast:73,rating:1.14,tfkd:0.95},
+      {p:'Player3',a:'Killjoy',acs:180,kd:0.95,adr:130,kast:70,rating:1.00,tfkd:0.75},
+      {p:'Player4',a:'Omen',acs:160,kd:0.85,adr:112,kast:66,rating:0.90,tfkd:0.65},
+      {p:'Player5',a:'Skye',acs:145,kd:0.75,adr:100,kast:72,rating:0.87,tfkd:0.55}]},
+    {date:'2025-04-18',opp:'Echoes',map:'Split',score:'9-13',result:'L',notes:'Mid control perdu',yt:'',timecodes:[],stats:[
+      {p:'Zeytrost',a:'Neon',acs:230,kd:1.05,adr:138,kast:68,rating:1.10,tfkd:0.95},
+      {p:'Flypii',a:'Sova',acs:182,kd:0.88,adr:128,kast:63,rating:0.92,tfkd:0.78},
+      {p:'Player3',a:'Cypher',acs:155,kd:0.78,adr:115,kast:58,rating:0.84,tfkd:0.60},
+      {p:'Player4',a:'Brimstone',acs:138,kd:0.68,adr:100,kast:60,rating:0.80,tfkd:0.50},
+      {p:'Player5',a:'Kay/O',acs:125,kd:0.60,adr:88,kast:55,rating:0.76,tfkd:0.42}]}
+  ];
+}
+
+// ── Helpers ──
+function wr(list) {
+  if(!list.length) return 0;
+  return Math.round(list.filter(s=>s.result==='W').length/list.length*100);
+}
+function avg(list, key) {
+  if(!list.length) return 0;
+  return list.reduce((a,b)=>a+b[key],0)/list.length;
+}
+function resultBadge(r) {
+  if(r==='W') return '<span class="badge badge-win">WIN</span>';
+  if(r==='L') return '<span class="badge badge-loss">LOSS</span>';
+  return '<span class="badge badge-draw">DRAW</span>';
+}
+function bars(items, getLabel, getVal, maxVal, getColor) {
+  return items.map(it=>{
+    const val=getVal(it), pct=maxVal>0?Math.round(val/maxVal*100):0;
+    return `<div class="bar-wrap">
+      <div class="bar-label"><span>${getLabel(it)}</span><span style="color:${getColor(val)}">${typeof val==='number'&&val%1!==0?val.toFixed(0):val}${getColor===wrColor?'%':''}</span></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${getColor(val)}"></div></div>
+    </div>`;
+  }).join('');
+}
+function wrColor(v) { return v>=50?'#5aaa22':'#d03030'; }
+function ytIcon(url) {
+  if(!url) return '—';
+  return `<a href="${url}" target="_blank" style="color:#e00;font-weight:700;font-size:10px;font-family:'Rajdhani',sans-serif;text-decoration:none;border:1px solid rgba(220,0,0,0.3);padding:2px 7px;border-radius:2px;background:rgba(220,0,0,0.1)">▶ YT</a>`;
+}
+
+// ── Tab switching ──
+function switchTab(id, btn) {
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+  if(id==='dashboard') renderDashboard();
+  if(id==='historique') renderHistory();
+  if(id==='joueurs') renderPlayers();
+  if(id==='maps') renderMaps();
+  if(id==='analyse') initMapCanvas();
+  if(id==='ajouter') buildForm();
+}
+
+// ── Dashboard ──
+function renderDashboard() {
+  const wins=scrims.filter(s=>s.result==='W').length;
+  const losses=scrims.filter(s=>s.result==='L').length;
+  const draws=scrims.filter(s=>s.result==='D').length;
+  document.getElementById('h-total').textContent=scrims.length;
+  document.getElementById('h-wr').textContent=wr(scrims)+'%';
+  document.getElementById('d-maps').textContent=scrims.length;
+  document.getElementById('d-wins').textContent=wins;
+  document.getElementById('d-losses').textContent=losses;
+  document.getElementById('d-draws').textContent=draws;
+
+  const maps=[...new Set(scrims.map(s=>s.map))];
+  const mapData=maps.map(m=>({m,wr:wr(scrims.filter(s=>s.map===m))}));
+  document.getElementById('map-wr-bars').innerHTML = mapData.length
+    ? bars(mapData, x=>x.m, x=>x.wr, 100, wrColor)
+    : '<div class="empty">Aucune donnée</div>';
+
+  const playerACS=PLAYERS.map(p=>{
+    let total=0,cnt=0;
+    scrims.forEach(s=>s.stats.filter(x=>x.p===p).forEach(x=>{total+=x.acs;cnt++;}));
+    return{p,acs:cnt>0?Math.round(total/cnt):0};
+  }).filter(x=>x.acs>0);
+  const maxACS=Math.max(...playerACS.map(x=>x.acs),1);
+  document.getElementById('acs-bars').innerHTML = playerACS.length
+    ? bars(playerACS, x=>x.p, x=>x.acs, maxACS, ()=>'#4a90e2')
+    : '<div class="empty">Aucune donnée</div>';
+
+  const recent=[...scrims].reverse().slice(0,5);
+  document.getElementById('recent-tbody').innerHTML = recent.length
+    ? recent.map(s=>`<tr>
+        <td class="name-cell">${s.date}</td><td class="name-cell">${s.opp}</td>
+        <td><span class="tag-map">${s.map}</span></td>
+        <td class="num">${s.score}</td>
+        <td>${resultBadge(s.result)}</td>
+        <td>${ytIcon(s.yt)}</td>
+        <td style="color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis">${s.notes||'—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" class="empty">Aucune pracc enregistrée</td></tr>';
+}
+
+// ── History ──
+function renderHistory() {
+  const fm=document.getElementById('f-map-filter').value;
+  const fr=document.getElementById('f-res-filter').value;
+  const fd=document.getElementById('f-date-filter').value;
+  const fo=document.getElementById('f-opp-filter').value;
+  const opps=[...new Set(scrims.map(s=>s.opp))].sort();
+  document.getElementById('f-opp-filter').innerHTML=`<option value="">Tous adversaires</option>`+opps.map(o=>`<option${o===fo?' selected':''}>${o}</option>`).join('');
+  let list=[...scrims].map((s,i)=>({...s,origIdx:i})).reverse();
+  if(fm) list=list.filter(s=>s.map===fm);
+  if(fr) list=list.filter(s=>s.result===fr);
+  if(fd) list=list.filter(s=>s.date>=fd);
+  if(fo) list=list.filter(s=>s.opp===fo);
+  document.getElementById('hist-tbody').innerHTML = list.length
+    ? list.map(s=>{
+        const avgACS=Math.round(avg(s.stats,'acs'));
+        const avgADR=Math.round(avg(s.stats,'adr'));
+        const avgKAST=Math.round(avg(s.stats,'kast'));
+        return`<tr>
+          <td class="name-cell">${s.date}</td><td class="name-cell">${s.opp}</td>
+          <td><span class="tag-map">${s.map}</span></td>
+          <td class="num">${s.score}</td>
+          <td>${resultBadge(s.result)}</td>
+          <td class="num">${avgACS}</td><td class="num">${avgADR}</td><td class="num">${avgKAST}%</td>
+          <td>${ytIcon(s.yt)}</td>
+          <td><div class="action-row">
+            <button class="btn-danger" onclick="promptDelete(${s.origIdx})">🗑️</button>
+          </div></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="10" class="empty">Aucune pracc trouvée</td></tr>';
+}
+
+// ── Delete ──
+function promptDelete(idx) {
+  pendingDeleteIdx = idx;
+  document.getElementById('delete-modal').classList.add('visible');
+}
+function closeDeleteModal() {
+  document.getElementById('delete-modal').classList.remove('visible');
+  pendingDeleteIdx = null;
+}
+function confirmDelete() {
+  if(pendingDeleteIdx !== null) {
+    scrims.splice(pendingDeleteIdx, 1);
+    save();
+    closeDeleteModal();
+    renderHistory();
+    document.getElementById('h-total').textContent=scrims.length;
+    document.getElementById('h-wr').textContent=wr(scrims)+'%';
+  }
+}
+
+// ── Players ──
+function renderPlayers() {
+  const rows=PLAYERS.map(p=>{
+    let acs=0,kd=0,adr=0,kast=0,rating=0,tfkd=0,cnt=0,agents={};
+    scrims.forEach(s=>s.stats.filter(x=>x.p===p).forEach(x=>{
+      acs+=x.acs;kd+=x.kd;adr+=x.adr;kast+=x.kast;rating+=x.rating;tfkd+=x.tfkd;cnt++;
+      agents[x.a]=(agents[x.a]||0)+1;
+    }));
+    if(!cnt) return null;
+    const fav=Object.entries(agents).sort((a,b)=>b[1]-a[1])[0][0];
+    const kdv=(kd/cnt).toFixed(2);
+    const kdClass=kdv>=1.2?'kd-pos':kdv<0.9?'kd-neg':'kd-neu';
+    const initials=p.substring(0,2).toUpperCase();
+    return`<tr>
+      <td class="name-cell"><span class="player-avatar">${initials}</span>${p}</td>
+      <td class="name-cell">${fav}</td><td class="num">${cnt}</td>
+      <td class="num">${Math.round(acs/cnt)}</td>
+      <td class="num ${kdClass}">${kdv}</td>
+      <td class="num">${Math.round(adr/cnt)}</td>
+      <td class="num">${Math.round(kast/cnt)}%</td>
+      <td class="num">${(rating/cnt).toFixed(2)}</td>
+      <td class="num">${(tfkd/cnt).toFixed(2)}</td>
+    </tr>`;
+  }).filter(Boolean);
+  document.getElementById('players-tbody').innerHTML = rows.length
+    ? rows.join('')
+    : '<tr><td colspan="9" class="empty">Aucune donnée joueur</td></tr>';
+}
+
+// ── Maps ──
+function renderMaps() {
+  const maps=[...new Set(scrims.map(s=>s.map))].sort();
+  if(!maps.length){
+    document.getElementById('maps-grid').innerHTML='<div class="card empty"><div class="empty-icon">🗺️</div><div>Aucune map jouée</div></div>';
+    return;
+  }
+  document.getElementById('maps-grid').innerHTML=maps.map(m=>{
+    const ms=scrims.filter(s=>s.map===m);
+    const w=ms.filter(s=>s.result==='W').length;
+    const l=ms.filter(s=>s.result==='L').length;
+    const d=ms.filter(s=>s.result==='D').length;
+    const wrv=wr(ms);
+    const avgACS=Math.round(ms.reduce((a,s)=>a+avg(s.stats,'acs'),0)/ms.length);
+    const avgADR=Math.round(ms.reduce((a,s)=>a+avg(s.stats,'adr'),0)/ms.length);
+    return`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px">${m}</div>
+        <span class="badge badge-${wrv>=50?'win':'loss'}">${wrv}% WR</span>
+      </div>
+      <div style="display:flex;gap:14px;font-size:12px;margin-bottom:12px;font-family:'JetBrains Mono',monospace">
+        <span style="color:#7dcc44;font-weight:700">${w}W</span>
+        <span style="color:#f07070;font-weight:700">${l}L</span>
+        <span style="color:#e8a040;font-weight:700">${d}D</span>
+        <span style="color:var(--text2)">${ms.length} partie${ms.length>1?'s':''}</span>
+      </div>
+      <div class="bar-bg" style="height:8px;margin-bottom:12px">
+        <div class="bar-fill" style="width:${wrv}%;background:${wrv>=50?'#5aaa22':'#d03030'}"></div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px;font-family:'JetBrains Mono',monospace">
+        <span style="color:var(--text2)">ACS <strong style="color:var(--text)">${avgACS}</strong></span>
+        <span style="color:var(--text2)">ADR <strong style="color:var(--text)">${avgADR}</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Form ──
+function buildForm() {
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('in-date').value=today;
+  document.getElementById('player-form-rows').innerHTML=PLAYERS.map((p,i)=>`
+    <div class="player-row-input">
+      <div class="player-name-cell">${p}</div>
+      <select id="pi-a-${i}">${AGENTS.map(a=>`<option>${a}</option>`).join('')}</select>
+      ${['acs','kd','adr','kast','rating','tfkd'].map(s=>`<input id="pi-${s}-${i}" type="number" step="0.01" placeholder="0" min="0">`).join('')}
+    </div>`).join('');
+  newTimecodes = [];
+  renderNewTimecodes();
+}
+
+function savePracc() {
+  const date=document.getElementById('in-date').value;
+  const opp=document.getElementById('in-opp').value.trim();
+  const score=document.getElementById('in-score').value.trim();
+  if(!date||!opp||!score){ showAlert('error-alert'); return; }
+  const map=document.getElementById('in-map').value;
+  const result=document.getElementById('in-result').value;
+  const notes=document.getElementById('in-notes').value.trim();
+  const yt=document.getElementById('in-yt').value.trim();
+  const stats=PLAYERS.map((p,i)=>({
+    p, a:document.getElementById(`pi-a-${i}`).value,
+    acs:parseFloat(document.getElementById(`pi-acs-${i}`).value)||0,
+    kd:parseFloat(document.getElementById(`pi-kd-${i}`).value)||0,
+    adr:parseFloat(document.getElementById(`pi-adr-${i}`).value)||0,
+    kast:parseFloat(document.getElementById(`pi-kast-${i}`).value)||0,
+    rating:parseFloat(document.getElementById(`pi-rating-${i}`).value)||0,
+    tfkd:parseFloat(document.getElementById(`pi-tfkd-${i}`).value)||0
+  }));
+  scrims.push({date,opp,map,score,result,notes,yt,timecodes:[...newTimecodes],stats});
+  save();
+  document.getElementById('in-opp').value='';
+  document.getElementById('in-score').value='';
+  document.getElementById('in-notes').value='';
+  document.getElementById('in-yt').value='';
+  buildForm();
+  showAlert('success-alert');
+  document.getElementById('h-total').textContent=scrims.length;
+  document.getElementById('h-wr').textContent=wr(scrims)+'%';
+}
+
+function showAlert(id) {
+  const el=document.getElementById(id);
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none',3200);
+}
+
+// ── New Timecodes (in ajouter form) ──
+function addNewTimecode() {
+  const time=document.getElementById('new-tc-time').value.trim();
+  const desc=document.getElementById('new-tc-desc').value.trim();
+  const type=document.getElementById('new-tc-type').value;
+  if(!time||!desc) return;
+  newTimecodes.push({time,desc,type});
+  document.getElementById('new-tc-time').value='';
+  document.getElementById('new-tc-desc').value='';
+  renderNewTimecodes();
+}
+function removeNewTimecode(i) {
+  newTimecodes.splice(i,1);
+  renderNewTimecodes();
+}
+function renderNewTimecodes() {
+  const el=document.getElementById('new-tc-list');
+  el.innerHTML = newTimecodes.map((tc,i)=>`
+    <div class="timecode-item">
+      <span class="tc-time">${tc.time}</span>
+      <span class="tc-desc">${tc.desc}</span>
+      <span class="tc-badge tc-${tc.type}">${tc.type}</span>
+      <button class="btn-danger" onclick="removeNewTimecode(${i})" style="padding:3px 7px;font-size:10px">×</button>
+    </div>`).join('');
+}
+
+// ── Analyse timecodes (pracc liée) ──
+let analyseTimecodes = [];
+let analysePraccIdx = null;
+
+function loadPraccTimecodes() {
+  const sel = document.getElementById('canvas-pracc-sel').value;
+  const tcPanel = document.getElementById('tc-panel');
+  if(!sel) { tcPanel.style.display='none'; return; }
+  analysePraccIdx = parseInt(sel);
+  analyseTimecodes = [...(scrims[analysePraccIdx].timecodes||[])];
+  tcPanel.style.display='block';
+  renderAnalyseTimecodes();
+}
+function renderAnalyseTimecodes() {
+  const el=document.getElementById('tc-list');
+  if(!analyseTimecodes.length){ el.innerHTML='<div style="color:var(--text2);font-size:12px;padding:8px 0">Aucun timecode</div>'; return; }
+  const yt = analysePraccIdx!==null ? scrims[analysePraccIdx].yt : '';
+  el.innerHTML = analyseTimecodes.map((tc,i)=>{
+    const ytLink = yt && tc.time ? `<a href="${yt}&t=${timeToSeconds(tc.time)}" target="_blank" style="color:#e00;font-size:10px;margin-left:6px">▶</a>` : '';
+    return`<div class="timecode-item">
+      <span class="tc-time">${tc.time}${ytLink}</span>
+      <span class="tc-desc">${tc.desc}</span>
+      <span class="tc-badge tc-${tc.type}">${tc.type}</span>
+      <button class="btn-danger" onclick="removeAnalyseTimecode(${i})" style="padding:3px 7px;font-size:10px">×</button>
+    </div>`;
+  }).join('');
+}
+function timeToSeconds(t) {
+  const parts = t.split(':').map(Number);
+  if(parts.length===2) return parts[0]*60+parts[1];
+  if(parts.length===3) return parts[0]*3600+parts[1]*60+parts[2];
+  return 0;
+}
+function addTimecode() {
+  const time=document.getElementById('tc-time').value.trim();
+  const desc=document.getElementById('tc-desc').value.trim();
+  const type=document.getElementById('tc-type').value;
+  if(!time||!desc) return;
+  analyseTimecodes.push({time,desc,type});
+  if(analysePraccIdx!==null) { scrims[analysePraccIdx].timecodes=analyseTimecodes; save(); }
+  document.getElementById('tc-time').value='';
+  document.getElementById('tc-desc').value='';
+  renderAnalyseTimecodes();
+}
+function removeAnalyseTimecode(i) {
+  analyseTimecodes.splice(i,1);
+  if(analysePraccIdx!==null) { scrims[analysePraccIdx].timecodes=analyseTimecodes; save(); }
+  renderAnalyseTimecodes();
+}
+
+// ── Map Canvas ──
+let currentTool = 'attack';
+let isDrawing = false;
+let lastX=0, lastY=0;
+let mapCanvas, ctx;
+const MAP_COLORS = {attack:'#f07070',defense:'#4a90e2',rotate:'#e8a040',spike:'#c044f0',arrow:'#7dcc44',erase:'#0a0a10'};
+
+function setTool(t) {
+  currentTool = t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tool-'+t).classList.add('active');
+}
+
+function initMapCanvas() {
+  mapCanvas = document.getElementById('mapCanvas');
+  if(!mapCanvas) return;
+  const wrap = mapCanvas.parentElement;
+  mapCanvas.width = wrap.clientWidth || 600;
+  mapCanvas.height = (wrap.clientWidth||600) / 1.78;
+  ctx = mapCanvas.getContext('2d');
+  drawMapBG();
+
+  // Fill pracc selector
+  const sel = document.getElementById('canvas-pracc-sel');
+  sel.innerHTML = '<option value="">Pracc libre</option>' + scrims.map((s,i)=>`<option value="${i}">${s.date} — ${s.opp} (${s.map})</option>`).join('');
+
+  mapCanvas.onmousedown = (e)=>{ isDrawing=true; const pos=getPos(e); lastX=pos.x; lastY=pos.y; };
+  mapCanvas.onmousemove = (e)=>{ if(!isDrawing) return; draw(e); };
+  mapCanvas.onmouseup = ()=>{ isDrawing=false; ctx.beginPath(); };
+  mapCanvas.onmouseleave = ()=>{ isDrawing=false; ctx.beginPath(); };
+  mapCanvas.ontouchstart = (e)=>{ e.preventDefault(); isDrawing=true; const pos=getPos(e.touches[0]); lastX=pos.x; lastY=pos.y; };
+  mapCanvas.ontouchmove = (e)=>{ e.preventDefault(); if(!isDrawing) return; draw(e.touches[0]); };
+  mapCanvas.ontouchend = ()=>{ isDrawing=false; };
+}
+
+function getPos(e) {
+  const rect = mapCanvas.getBoundingClientRect();
+  const scaleX = mapCanvas.width / rect.width;
+  const scaleY = mapCanvas.height / rect.height;
+  return { x:(e.clientX-rect.left)*scaleX, y:(e.clientY-rect.top)*scaleY };
+}
+
+function draw(e) {
+  const pos = getPos(e);
+  const color = MAP_COLORS[currentTool]||'#fff';
+  if(currentTool==='erase') {
+    ctx.clearRect(pos.x-15, pos.y-15, 30, 30);
+  } else if(currentTool==='spike') {
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.arc(pos.x,pos.y,8,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    isDrawing=false;
+  } else if(currentTool==='arrow') {
+    ctx.strokeStyle=color;ctx.lineWidth=3;
+    ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(pos.x,pos.y);ctx.stroke();
+    drawArrowHead(lastX,lastY,pos.x,pos.y,color);
+    lastX=pos.x;lastY=pos.y;
+  } else {
+    ctx.strokeStyle=color;
+    ctx.lineWidth=currentTool==='attack'||currentTool==='defense'?3:2;
+    ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(pos.x,pos.y);ctx.stroke();
+    lastX=pos.x;lastY=pos.y;
+  }
+}
+
+function drawArrowHead(fx,fy,tx,ty,color) {
+  const angle=Math.atan2(ty-fy,tx-fx);
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(tx,ty);
+  ctx.lineTo(tx-12*Math.cos(angle-0.4),ty-12*Math.sin(angle-0.4));
+  ctx.lineTo(tx-12*Math.cos(angle+0.4),ty-12*Math.sin(angle+0.4));
+  ctx.closePath();ctx.fill();
+}
+
+function drawMapBG() {
+  const map = document.getElementById('canvas-map-sel').value;
+  ctx.fillStyle='#0a0a10';
+  ctx.fillRect(0,0,mapCanvas.width,mapCanvas.height);
+  // Draw simplified map grid
+  ctx.strokeStyle='#1e1e32';ctx.lineWidth=1;
+  for(let x=0;x<mapCanvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,mapCanvas.height);ctx.stroke();}
+  for(let y=0;y<mapCanvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(mapCanvas.width,y);ctx.stroke();}
+  // Map name
+  ctx.fillStyle='rgba(74,144,226,0.06)';
+  ctx.font=`bold ${mapCanvas.height*0.35}px 'Rajdhani',sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(map.toUpperCase(),mapCanvas.width/2,mapCanvas.height/2);
+  ctx.textAlign='left';ctx.textBaseline='top';
+  // Draw generic map zones based on map name
+  drawMapZones(map);
+}
+
+function drawMapZones(map) {
+  ctx.strokeStyle='rgba(74,144,226,0.15)';ctx.lineWidth=2;
+  const w=mapCanvas.width, h=mapCanvas.height;
+  // Simple zone labels
+  const zones = {
+    Ascent:[{l:'A SITE',x:0.15,y:0.15},{l:'MID',x:0.45,y:0.45},{l:'B SITE',x:0.75,y:0.7}],
+    Bind:[{l:'A SITE',x:0.15,y:0.2},{l:'A SHORT',x:0.35,y:0.4},{l:'B SITE',x:0.72,y:0.65},{l:'B LONG',x:0.6,y:0.2}],
+    Haven:[{l:'A SITE',x:0.12,y:0.15},{l:'B SITE',x:0.48,y:0.2},{l:'C SITE',x:0.78,y:0.15},{l:'MID',x:0.48,y:0.65}],
+    Icebox:[{l:'A SITE',x:0.2,y:0.2},{l:'B SITE',x:0.72,y:0.65},{l:'MID',x:0.48,y:0.45}],
+    Lotus:[{l:'A SITE',x:0.15,y:0.3},{l:'B SITE',x:0.5,y:0.2},{l:'C SITE',x:0.78,y:0.3}],
+    Pearl:[{l:'A SITE',x:0.15,y:0.25},{l:'B SITE',x:0.75,y:0.65},{l:'MID',x:0.45,y:0.45}],
+    Split:[{l:'A SITE',x:0.18,y:0.2},{l:'MID',x:0.48,y:0.5},{l:'B SITE',x:0.76,y:0.7}],
+  };
+  const zs = zones[map]||zones.Ascent;
+  zs.forEach(z=>{
+    ctx.fillStyle='rgba(74,144,226,0.5)';
+    ctx.font=`bold ${h*0.035}px 'Rajdhani',sans-serif`;
+    ctx.fillText(z.l, z.x*w, z.y*h);
+  });
+  // Attack / Defend sides label
+  ctx.fillStyle='rgba(240,112,112,0.3)';
+  ctx.font=`bold ${h*0.03}px 'Rajdhani',sans-serif`;
+  ctx.fillText('ATTACK SPAWN',w*0.02,h*0.9);
+  ctx.fillStyle='rgba(74,144,226,0.3)';
+  ctx.fillText('DEFENSE SPAWN',w*0.65,h*0.9);
+}
+
+function clearCanvas() {
+  ctx.clearRect(0,0,mapCanvas.width,mapCanvas.height);
+  drawMapBG();
+}
+function exportCanvas() {
+  const link=document.createElement('a');
+  link.download=`valoroom-map-${Date.now()}.png`;
+  link.href=mapCanvas.toDataURL();
+  link.click();
+}
+
+// ── AI SCOREBOARD IMPORT ──
+const dropZone = document.getElementById('ai-drop-zone');
+const fileInput = document.getElementById('ai-file-input');
+
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('dragover',(e)=>{e.preventDefault();dropZone.classList.add('drag-over')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',(e)=>{
+  e.preventDefault();dropZone.classList.remove('drag-over');
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/')) processImage(file);
+});
+fileInput.addEventListener('change',()=>{
+  if(fileInput.files[0]) processImage(fileInput.files[0]);
+});
+
+function processImage(file) {
+  const preview=document.getElementById('preview-img');
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    preview.src=e.target.result;
+    preview.style.display='block';
+    analyzeScoreboard(e.target.result.split(',')[1], file.type);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzeScoreboard(base64Data, mediaType) {
+  document.getElementById('ai-loading').style.display='block';
+  document.getElementById('ai-result').style.display='none';
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image', source:{type:'base64', media_type:mediaType, data:base64Data}},
+            {type:'text', text:`Tu es un assistant d'extraction de statistiques Valorant. Analyse ce scoreboard Valorant et retourne UNIQUEMENT un objet JSON valide, sans texte avant ni après, sans backticks, avec cette structure exacte:
+{
+  "map": "nom de la map ou null",
+  "score": "ex: 13-8 ou null",
+  "result": "W, L ou D ou null",
+  "players": [
+    {"name": "pseudo", "agent": "agent", "acs": 0, "kd": 0.0, "adr": 0, "kast": 0, "rating": 0.0, "tfkd": 0.0}
+  ]
+}
+Si une valeur n'est pas visible, mets 0 ou null. Extrait tous les joueurs visibles.`}
+          ]
+        }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.find(c=>c.type==='text')?.text||'{}';
+    let parsed;
+    try { parsed = JSON.parse(text.replace(/```json|```/g,'')); }
+    catch(e) { parsed = {players:[]}; }
+    aiExtractedData = parsed;
+    renderAIResult(parsed);
+  } catch(err) {
+    document.getElementById('ai-loading').style.display='none';
+    showAIError('Erreur API. Vérifie ta connexion.');
+  }
+  document.getElementById('ai-loading').style.display='none';
+}
+
+function renderAIResult(data) {
+  const el = document.getElementById('ai-result-content');
+  let html = '';
+  if(data.map) html += `<div style="margin-bottom:8px;font-size:12px"><span style="color:var(--text2)">Map:</span> <strong>${data.map}</strong> &nbsp; <span style="color:var(--text2)">Score:</span> <strong>${data.score||'?'}</strong> &nbsp; <span style="color:var(--text2)">Résultat:</span> ${resultBadge(data.result)}</div>`;
+  if(data.players?.length) {
+    html += `<div class="table-wrap"><table>
+      <thead><tr><th>Joueur</th><th>Agent</th><th>ACS</th><th>K/D</th><th>ADR</th><th>KAST</th><th>Rating</th></tr></thead>
+      <tbody>${data.players.map(p=>`<tr>
+        <td class="name-cell">${p.name}</td><td class="name-cell">${p.agent}</td>
+        <td class="num">${p.acs}</td><td class="num">${p.kd}</td>
+        <td class="num">${p.adr}</td><td class="num">${p.kast}%</td><td class="num">${p.rating}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } else { html += '<div style="color:var(--text2);font-size:12px">Aucun joueur détecté. Essaie une image plus nette.</div>'; }
+  el.innerHTML = html;
+  document.getElementById('ai-result').style.display='block';
+}
+
+function showAIError(msg) {
+  document.getElementById('ai-result-content').innerHTML=`<div style="color:#f07070;font-size:12px">${msg}</div>`;
+  document.getElementById('ai-result').style.display='block';
+}
+
+function applyAIStats() {
+  if(!aiExtractedData) return;
+  switchTab('ajouter', document.querySelectorAll('.nav-btn')[6]);
+  buildForm();
+  setTimeout(()=>{
+    if(aiExtractedData.map) document.getElementById('in-map').value=aiExtractedData.map;
+    if(aiExtractedData.score) document.getElementById('in-score').value=aiExtractedData.score;
+    if(aiExtractedData.result) document.getElementById('in-result').value=aiExtractedData.result;
+    // Match players
+    if(aiExtractedData.players) {
+      aiExtractedData.players.forEach(ap=>{
+        PLAYERS.forEach((p,i)=>{
+          if(p.toLowerCase()===ap.name.toLowerCase()||ap.name.toLowerCase().includes(p.toLowerCase())){
+            if(AGENTS.includes(ap.agent)) document.getElementById(`pi-a-${i}`).value=ap.agent;
+            if(ap.acs) document.getElementById(`pi-acs-${i}`).value=ap.acs;
+            if(ap.kd) document.getElementById(`pi-kd-${i}`).value=ap.kd;
+            if(ap.adr) document.getElementById(`pi-adr-${i}`).value=ap.adr;
+            if(ap.kast) document.getElementById(`pi-kast-${i}`).value=ap.kast;
+            if(ap.rating) document.getElementById(`pi-rating-${i}`).value=ap.rating;
+          }
+        });
+      });
+    }
+    showAlert('success-alert');
+  },100);
+}
+
+// ── YouTube Analysis ──
+async function analyzeYouTube() {
+  const url = document.getElementById('yt-url').value.trim();
+  if(!url) return;
+  document.getElementById('yt-loading').style.display='block';
+  document.getElementById('yt-result').style.display='none';
+  try {
+    const videoId = extractYTid(url);
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{
+          role:'user',
+          content:`Voici un lien YouTube d'une VOD de scrim Valorant: ${url}
+          
+Je ne peux pas accéder à la vidéo directement, mais génère une réponse UNIQUEMENT en JSON valide, sans backticks, pour simuler l'extraction de la structure de données, avec des valeurs vides à remplir par l'utilisateur:
+{
+  "youtube_url": "${url}",
+  "video_id": "${videoId||''}",
+  "suggested_map": null,
+  "suggested_score": null,
+  "suggested_result": null,
+  "timecodes": [
+    {"time": "0:00", "desc": "Début de la partie", "type": "strat"},
+    {"time": "?:??", "desc": "Premier round important — à compléter", "type": "strat"},
+    {"time": "?:??", "desc": "Mi-temps — à compléter", "type": "strat"}
+  ],
+  "note": "Ajoute le lien YouTube à la pracc et complète les timecodes manuellement en regardant la VOD."
+}`
+        }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.find(c=>c.type==='text')?.text||'{}';
+    let parsed;
+    try { parsed = JSON.parse(text.replace(/```json|```/g,'')); }
+    catch(e) { parsed = {timecodes:[],note:'Erreur parsing'}; }
+    ytExtractedData = {...parsed, youtube_url: url};
+    renderYTResult(parsed, url);
+  } catch(err) {
+    document.getElementById('yt-result-content').innerHTML='<div style="color:#f07070;font-size:12px">Erreur API.</div>';
+    document.getElementById('yt-result').style.display='block';
+  }
+  document.getElementById('yt-loading').style.display='none';
+}
+
+function extractYTid(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|\/embed\/)([\w-]{11})/);
+  return m?m[1]:null;
+}
+
+function renderYTResult(data, url) {
+  const videoId = extractYTid(url);
+  let html = '';
+  if(videoId) {
+    html += `<div style="margin-bottom:12px">
+      <a href="${url}" target="_blank" style="color:#e00;font-weight:700;font-family:'Rajdhani',sans-serif;font-size:13px">▶ ${url}</a>
+    </div>`;
+  }
+  if(data.note) html+=`<div style="color:var(--text2);font-size:11px;margin-bottom:10px;font-style:italic">${data.note}</div>`;
+  if(data.timecodes?.length) {
+    html += '<div style="font-family:\'Rajdhani\',sans-serif;font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Timecodes suggérés</div>';
+    html += data.timecodes.map(tc=>{
+      const sec = timeToSeconds(tc.time);
+      const ytLink = videoId&&sec>0?`https://youtu.be/${videoId}?t=${sec}`:url;
+      return`<div class="timecode-item">
+        <a href="${ytLink}" target="_blank" class="tc-time" style="text-decoration:none">${tc.time}</a>
+        <span class="tc-desc">${tc.desc}</span>
+        <span class="tc-badge tc-${tc.type}">${tc.type}</span>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('yt-result-content').innerHTML=html;
+  document.getElementById('yt-result').style.display='block';
+}
+
+function applyYTStats() {
+  if(!ytExtractedData) return;
+  switchTab('ajouter', document.querySelectorAll('.nav-btn')[6]);
+  buildForm();
+  setTimeout(()=>{
+    document.getElementById('in-yt').value = ytExtractedData.youtube_url||'';
+    if(ytExtractedData.timecodes) {
+      newTimecodes = ytExtractedData.timecodes.filter(tc=>tc.time&&tc.time!=='?:??');
+      renderNewTimecodes();
+    }
+    showAlert('success-alert');
+  },100);
+}
+
+// ── Init ──
+load();
+renderDashboard();
+buildForm();
+</script>
+</body>
+</html>
